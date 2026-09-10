@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDateTimeLocal } from '@/lib/exam-schedule'
@@ -32,6 +32,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   CircleHelp,
@@ -70,8 +71,17 @@ export default function CreateExamContent({
   showLogo?: boolean
   showHeader?: boolean
 } = {}) {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login')
+    }
+    if (!authLoading && user && user.role === 'student') {
+      router.push('/dashboard')
+    }
+  }, [user, authLoading, router])
 
   const [questions, setQuestions] = useState<SavedQuestion[]>([])
   const [type, setType] = useState<QuestionType>('true_false')
@@ -236,7 +246,9 @@ export default function CreateExamContent({
     try {
       const exists = await examExists(examCode)
       if (exists) {
-        setPendingCode(examCode.trim())
+        setError(
+          `Exam code '${examCode.trim().toUpperCase()}' already exists. Please change the code because an exam with this code already exists.`
+        )
         return
       }
       await doPublish()
@@ -271,6 +283,14 @@ export default function CreateExamContent({
       <main className="container mx-auto px-4 py-10 max-w-5xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push('/exams')}
+              aria-label="Back to all exams"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
               <ListChecks className="w-5 h-5 text-primary-foreground" />
             </div>
@@ -658,24 +678,6 @@ export default function CreateExamContent({
         </div>
       </main>
 
-      {/* Overwrite confirmation dialog */}
-      <AlertDialog open={!!pendingCode} onOpenChange={(open) => !open && setPendingCode(null)}>
-        <AlertDialogContent className="sm:max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Exam code already exists</AlertDialogTitle>
-            <AlertDialogDescription>
-              An exam with code{' '}
-              <span className="font-mono font-semibold">{pendingCode?.toUpperCase()}</span> already
-              exists. Publishing will replace all its questions with the current set. Do you want to
-              continue?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingCode(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={doPublish}>Replace exam</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

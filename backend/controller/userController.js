@@ -5,14 +5,12 @@ import {
   getUsersByName,
   getUserByNumber,
   getUserByEmail,
-  getUserByIdentifier,
   searchUsersByNamePartial,
   updateUserProfileByNumber,
 } from '../models/userModel.js'
 import {
   getAdminByName,
   getAdminByNumber,
-  getAdminByIdentifier,
   searchAdminsByNamePartial,
   updateAdminProfileByNumber,
 } from '../models/adminModel.js'
@@ -91,12 +89,12 @@ export const register = asyncWrapper(async (req, res, next) => {
 })
 
 export const login = asyncWrapper(async (req, res, next) => {
-  const { user_number, name, email, identifier, password } = req.body
-  const rawId = (user_number || identifier || name || email || '').trim()
+  const { user_number, identifier, password } = req.body
+  const rawId = (user_number || identifier || '').trim()
 
   if (!password || !rawId) {
     const error = new AppError(
-      'Password and user number / email / name are required',
+      'Password and student/instructor number are required',
       400,
       httpStatusText.ERROR
     )
@@ -107,7 +105,7 @@ export const login = asyncWrapper(async (req, res, next) => {
   let role = null
 
   // 1. Check if it's an admin first
-  const admin = await getAdminByIdentifier(rawId)
+  const admin = await getAdminByNumber(rawId)
   if (admin) {
     const matchedPassword = await bcrypt.compare(password, admin.password)
     if (matchedPassword) {
@@ -116,9 +114,9 @@ export const login = asyncWrapper(async (req, res, next) => {
     }
   }
 
-  // 2. If not an admin, check if it's a student or teacher (lookup by number, email, or name)
+  // 2. If not an admin, check if it's a student or teacher (lookup by number)
   if (!user) {
-    const dbUser = await getUserByIdentifier(rawId)
+    const dbUser = await getUserByNumber(rawId)
     if (dbUser) {
       const matchedPassword = await bcrypt.compare(password, dbUser.password)
       if (matchedPassword) {
@@ -151,7 +149,7 @@ export const login = asyncWrapper(async (req, res, next) => {
     })
   } else {
     const error = new AppError(
-      'Incorrect user number/email/name or password',
+      'Incorrect student/instructor number or password',
       401,
       httpStatusText.ERROR
     )

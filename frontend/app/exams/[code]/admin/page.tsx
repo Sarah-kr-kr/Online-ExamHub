@@ -110,9 +110,38 @@ export default function ExamAdminPage() {
     setIsMounted(true)
   }, [])
 
+  // Helpers to persist dismissed alert IDs in localStorage per exam
+  const getStoredDismissedAlerts = useCallback((examCode: string): Set<number> => {
+    if (typeof window === 'undefined') return new Set()
+    try {
+      const stored = localStorage.getItem(`dismissed_alerts_${examCode}`)
+      if (stored) {
+        const arr = JSON.parse(stored)
+        if (Array.isArray(arr)) return new Set(arr)
+      }
+    } catch (e) {}
+    return new Set()
+  }, [])
+
+  const saveStoredDismissedAlerts = useCallback((examCode: string, alertIds: Set<number>) => {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(`dismissed_alerts_${examCode}`, JSON.stringify(Array.from(alertIds)))
+    } catch (e) {}
+  }, [])
+
   const [cheatingAlerts, setCheatingAlerts] = useState<CheatingAlert[]>([])
-  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<number>>(new Set())
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<number>>(() =>
+    getStoredDismissedAlerts(code)
+  )
   const seenAlertIdsRef = useRef<Set<number>>(new Set())
+
+  // Restore dismissed alerts and mark them as seen on mount or code change
+  useEffect(() => {
+    const initialDismissed = getStoredDismissedAlerts(code)
+    setDismissedAlertIds(initialDismissed)
+    initialDismissed.forEach((id) => seenAlertIdsRef.current.add(id))
+  }, [code, getStoredDismissedAlerts])
 
   const handleDismissAlert = (alertId: number, userId?: number | string) => {
     if (userId) {
@@ -121,6 +150,8 @@ export default function ExamAdminPage() {
     setDismissedAlertIds((prev) => {
       const next = new Set(prev)
       next.add(alertId)
+      seenAlertIdsRef.current.add(alertId)
+      saveStoredDismissedAlerts(code, next)
       return next
     })
   }
@@ -130,8 +161,10 @@ export default function ExamAdminPage() {
       const next = new Set(prev)
       cheatingAlerts.forEach((a) => {
         next.add(a.id)
+        seenAlertIdsRef.current.add(a.id)
         toast.dismiss(`cheat-user-${a.user_id}`)
       })
+      saveStoredDismissedAlerts(code, next)
       return next
     })
   }
@@ -154,9 +187,13 @@ export default function ExamAdminPage() {
       }
       setCheatingAlerts(foundAlerts)
 
-      // Notify teacher of newly detected cheating incidents
+      // Notify teacher ONLY of newly detected cheating incidents that have NOT been dismissed or seen
       foundAlerts.forEach((alert) => {
-        if (!seenAlertIdsRef.current.has(alert.id)) {
+        const isDismissed =
+          dismissedAlertIds.has(alert.id) || getStoredDismissedAlerts(code).has(alert.id)
+        const isSeen = seenAlertIdsRef.current.has(alert.id)
+
+        if (!isDismissed && !isSeen) {
           seenAlertIdsRef.current.add(alert.id)
           const toastId = `cheat-user-${alert.user_id}`
           if (alert.warning_level === 1) {
@@ -187,7 +224,7 @@ export default function ExamAdminPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data')
     }
-  }, [code])
+  }, [code, dismissedAlertIds, getStoredDismissedAlerts])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -220,6 +257,24 @@ export default function ExamAdminPage() {
     try {
       toast.dismiss(`cheat-user-${userId}`)
       await forgiveCheatingAlerts(code, userId)
+
+      // Clean up dismissed alert IDs for this student from state & localStorage
+      const forgivenAlertIds = cheatingAlerts
+        .filter((a) => String(a.user_id) === String(userId))
+        .map((a) => a.id)
+
+      if (forgivenAlertIds.length > 0) {
+        setDismissedAlertIds((prev) => {
+          const next = new Set(prev)
+          forgivenAlertIds.forEach((id) => {
+            next.delete(id)
+            seenAlertIdsRef.current.delete(id)
+          })
+          saveStoredDismissedAlerts(code, next)
+          return next
+        })
+      }
+
       toast.success(`Granted last chance to ${studentName || 'student'}. Warning cleared.`)
       await loadData()
     } catch (err) {
@@ -980,7 +1035,7 @@ export default function ExamAdminPage() {
         {/* Participants Tab */}
         {activeTab === 'participants' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Participants</h2>
                 <p className="text-sm text-muted-foreground">
@@ -988,6 +1043,16 @@ export default function ExamAdminPage() {
                   {finishedParticipants.length} finished
                 </p>
               </div>
+              {participants.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1.5 text-xs font-semibold shadow-sm"
+                  onClick={() => setKickAllTarget(true)}
+                >
+                  <UserX className="w-4 h-4" /> Kick All Participants
+                </Button>
+              )}
             </div>
 
             {participants.length === 0 ? (
@@ -1167,23 +1232,21 @@ export default function ExamAdminPage() {
                                     Last Chance
                                   </Button>
                                 )}
-                                {!isFinished && (
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="gap-1 h-7 px-2 text-xs"
-                                    onClick={() => handleStopStudentExam(p.user_id, p.user_name)}
-                                    title="Stop student's exam immediately"
-                                  >
-                                    <UserX className="w-3.5 h-3.5" />
-                                    Stop Exam
-                                  </Button>
-                                )}
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="gap-1 h-7 px-2.5 text-xs font-semibold"
+                                  onClick={() => setKickTarget(p)}
+                                  title="Kick student from exam"
+                                >
+                                  <UserX className="w-3.5 h-3.5" />
+                                  Kick
+                                </Button>
                                 {isFinished && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="gap-1 text-primary hover:text-primary hover:bg-primary/10 h-7 px-2"
+                                    className="gap-1 text-primary hover:text-primary hover:bg-primary/10 h-7 px-2 text-xs"
                                     onClick={() => setSelectedParticipantForDetails(p)}
                                   >
                                     <Eye className="w-3.5 h-3.5" />

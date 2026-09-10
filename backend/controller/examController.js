@@ -33,7 +33,13 @@ export const createExam = asyncWrapper(async (req, res, next) => {
 
   const existing = await examModel.getExamByCode(code)
   if (existing) {
-    return next(new AppError('Exam with this code already exists', 400, httpStatusText.FAIL))
+    return next(
+      new AppError(
+        `Exam code '${code}' already exists. Please choose a different code because it already exists.`,
+        400,
+        httpStatusText.FAIL
+      )
+    )
   }
 
   const createdBy = req.currentUser?.user_number || 'unknown'

@@ -177,7 +177,7 @@ export default function TakeExamPage({ params }: { params: Promise<{ code: strin
           return
         }
 
-        // Case 2: If student was stopped by instructor (submission marked finished)
+        // Case 2: If student was stopped/kicked by instructor (submission marked finished)
         if (
           hasEnteredExam &&
           !submitted &&
@@ -191,6 +191,19 @@ export default function TakeExamPage({ params }: { params: Promise<{ code: strin
           setViewMode('result')
           setPastScore({ score: sub.score, total: sub.total })
           disqualifySubmittedRef.current = true
+
+          toast.error('🚫 Removed by Instructor', {
+            description:
+              'Your instructor has manually removed/kicked you from this exam session.',
+            duration: 10000,
+          })
+          setCheatNoticeModal({
+            open: true,
+            type: 'banned',
+            title: 'Removed from Exam by Instructor',
+            message:
+              'Your instructor has manually removed you from this exam session. If your instructor grants you a last chance, your exam will resume automatically.',
+          })
         }
       } catch (e) {}
     }

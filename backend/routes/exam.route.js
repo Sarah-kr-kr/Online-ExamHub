@@ -21,8 +21,18 @@ router
 router.post('/:code/join', verifyToken, examController.joinExam)
 router.post('/:code/submit', verifyToken, examController.submitExamResult)
 router.get('/:code/my-submission', verifyToken, examController.getMySubmission)
-router.get('/:code/participants', verifyToken, examController.getParticipants)
-router.delete('/:code/participants/:userId', verifyToken, examController.kickExamParticipant)
+router.get(
+  '/:code/participants',
+  verifyToken,
+  allowedTo(userRoles.INSTRUCTOR, userRoles.ADMIN),
+  examController.getParticipants
+)
+router.delete(
+  '/:code/participants/:userId',
+  verifyToken,
+  allowedTo(userRoles.INSTRUCTOR, userRoles.ADMIN),
+  examController.kickExamParticipant
+)
 
 // Exam settings
 router.get('/:code/settings', verifyToken, examController.getSettings)
