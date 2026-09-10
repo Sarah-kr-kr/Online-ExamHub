@@ -193,8 +193,7 @@ export default function TakeExamPage({ params }: { params: Promise<{ code: strin
           disqualifySubmittedRef.current = true
 
           toast.error('🚫 Removed by Instructor', {
-            description:
-              'Your instructor has manually removed/kicked you from this exam session.',
+            description: 'Your instructor has manually removed/kicked you from this exam session.',
             duration: 10000,
           })
           setCheatNoticeModal({

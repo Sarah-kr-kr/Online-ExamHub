@@ -677,7 +677,6 @@ export default function CreateExamContent({
           </Card>
         </div>
       </main>
-
     </div>
   )
 }

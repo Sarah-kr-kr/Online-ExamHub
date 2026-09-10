@@ -869,7 +869,6 @@ function GenerateExamContent() {
           </Card>
         </div>
       </main>
-
     </div>
   )
 }

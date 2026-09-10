@@ -137,17 +137,28 @@ export function AdminDashboardCharts({ stats, exams = [] }: AdminChartsProps) {
   }, [exams, activeExamFilter])
 
   // Calculate total passed and failed submissions for displayedExams
-  const calculatedPassedFromExams = displayedExams.reduce((acc, curr) => acc + (curr.passed_count || 0), 0)
-  const calculatedFailedFromExams = displayedExams.reduce((acc, curr) => acc + (curr.failed_count || 0), 0)
-  const calculatedAttemptsFromExams = displayedExams.reduce((acc, curr) => acc + (curr.participant_count || 0), 0)
+  const calculatedPassedFromExams = displayedExams.reduce(
+    (acc, curr) => acc + (curr.passed_count || 0),
+    0
+  )
+  const calculatedFailedFromExams = displayedExams.reduce(
+    (acc, curr) => acc + (curr.failed_count || 0),
+    0
+  )
+  const calculatedAttemptsFromExams = displayedExams.reduce(
+    (acc, curr) => acc + (curr.participant_count || 0),
+    0
+  )
 
-  const totalPassed = activeExamFilter === 'all' && stats.passedCount !== undefined
-    ? stats.passedCount
-    : calculatedPassedFromExams
+  const totalPassed =
+    activeExamFilter === 'all' && stats.passedCount !== undefined
+      ? stats.passedCount
+      : calculatedPassedFromExams
 
-  const totalFailed = activeExamFilter === 'all' && stats.failedCount !== undefined
-    ? stats.failedCount
-    : calculatedFailedFromExams
+  const totalFailed =
+    activeExamFilter === 'all' && stats.failedCount !== undefined
+      ? stats.failedCount
+      : calculatedFailedFromExams
 
   const totalEvaluated = totalPassed + totalFailed
 
@@ -159,13 +170,17 @@ export function AdminDashboardCharts({ stats, exams = [] }: AdminChartsProps) {
         : 0
   const failRatePct = totalEvaluated > 0 ? 100 - passRatePct : 0
 
-  const displayAttemptsCount = activeExamFilter === 'all'
-    ? (stats.submissionCount || totalEvaluated)
-    : calculatedAttemptsFromExams
+  const displayAttemptsCount =
+    activeExamFilter === 'all'
+      ? stats.submissionCount || totalEvaluated
+      : calculatedAttemptsFromExams
 
-  const displayAvgScore = displayedExams.length > 0
-    ? Math.round(displayedExams.reduce((acc, e) => acc + (e.avg_score || 0), 0) / displayedExams.length)
-    : stats.overallAvg
+  const displayAvgScore =
+    displayedExams.length > 0
+      ? Math.round(
+          displayedExams.reduce((acc, e) => acc + (e.avg_score || 0), 0) / displayedExams.length
+        )
+      : stats.overallAvg
 
   const examResultPieData = [
     { name: 'Passed', value: totalPassed, color: EXAM_RESULT_COLORS.Passed },

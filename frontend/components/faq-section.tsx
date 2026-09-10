@@ -258,7 +258,8 @@ const ADMIN_FAQ_POOLS: FaqItem[][] = [
     },
     {
       id: 'adm-6',
-      question: 'Can an administrator manage or delete study rooms and exams created by instructors?',
+      question:
+        'Can an administrator manage or delete study rooms and exams created by instructors?',
       answer:
         'Yes, Administrators possess override authority to inspect, update settings, or delete any study room, file upload, or published exam across the platform.',
       category: 'Override Controls',
