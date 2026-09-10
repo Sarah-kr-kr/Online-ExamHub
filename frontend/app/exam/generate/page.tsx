@@ -76,10 +76,19 @@ interface GeneratedQuestion {
 }
 
 function GenerateExamContent() {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { trackJob, activeJob, clearActiveJob } = useAiJob()
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login')
+    }
+    if (!authLoading && user && user.role === 'student') {
+      router.push('/dashboard')
+    }
+  }, [user, authLoading, router])
 
   const [currentJobId, setCurrentJobId] = useState<string | null>(null)
 
@@ -344,7 +353,9 @@ function GenerateExamContent() {
     try {
       const exists = await examExists(examCode)
       if (exists) {
-        setPendingCode(examCode.trim())
+        setPublishError(
+          `Exam code '${examCode.trim().toUpperCase()}' already exists. Please change the code because an exam with this code already exists.`
+        )
         return
       }
       await doPublish()
@@ -382,8 +393,8 @@ function GenerateExamContent() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push('/exam/create')}
-              aria-label="Back to create exam"
+              onClick={() => router.push('/exams')}
+              aria-label="Back to all exams"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -858,25 +869,6 @@ function GenerateExamContent() {
           </Card>
         </div>
       </main>
-
-      {/* Overwrite confirmation dialog */}
-      <AlertDialog open={!!pendingCode} onOpenChange={(open) => !open && setPendingCode(null)}>
-        <AlertDialogContent className="sm:max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Exam code already exists</AlertDialogTitle>
-            <AlertDialogDescription>
-              An exam with code{' '}
-              <span className="font-mono font-semibold">{pendingCode?.toUpperCase()}</span> already
-              exists. Publishing will replace all its questions with the current set. Do you want to
-              continue?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingCode(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={doPublish}>Replace exam</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

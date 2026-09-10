@@ -27,14 +27,14 @@ const upload = multer({
 
 // ─── Room CRUD ──────────────────────────────────────────────────────────────
 
-// Create a room (instructor only)
-router.route('/').post(verifyToken, allowedTo(userRoles.INSTRUCTOR), roomController.createNewRoom)
+// Create a room (instructor or admin)
+router.route('/').post(verifyToken, allowedTo(userRoles.INSTRUCTOR, userRoles.ADMIN), roomController.createNewRoom)
 
 // List rooms (any authenticated user)
 router.route('/').get(verifyToken, roomController.listRooms)
 
-// Instructor's own rooms
-router.route('/my-rooms').get(verifyToken, allowedTo(userRoles.INSTRUCTOR), roomController.myRooms)
+// Instructor's/Admin's own rooms
+router.route('/my-rooms').get(verifyToken, allowedTo(userRoles.INSTRUCTOR, userRoles.ADMIN), roomController.myRooms)
 
 // Single room details & Update settings
 router
@@ -51,11 +51,11 @@ router
 
 router
   .route('/:roomId/join')
-  .post(verifyToken, allowedTo(userRoles.STUDENT), roomController.joinRoom)
+  .post(verifyToken, allowedTo(userRoles.STUDENT, userRoles.INSTRUCTOR, userRoles.ADMIN), roomController.joinRoom)
 
 router
   .route('/:roomId/leave')
-  .post(verifyToken, allowedTo(userRoles.STUDENT), roomController.leaveRoom)
+  .post(verifyToken, allowedTo(userRoles.STUDENT, userRoles.INSTRUCTOR, userRoles.ADMIN), roomController.leaveRoom)
 
 router
   .route('/:roomId/members/:studentId')

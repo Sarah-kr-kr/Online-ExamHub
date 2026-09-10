@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Header } from '@/components/header'
 import { ExamJoinSection } from '@/components/exam-join-section'
 import { FeaturesSection } from '@/components/features-section'
+import { FaqSection } from '@/components/faq-section'
 import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth-context'
@@ -110,80 +111,8 @@ export default function HomePage() {
           <FeaturesSection />
         </div>
 
-        {/* Interactive Colorful FAQ Section */}
-        <section className="py-16 md:py-24 bg-muted/10 border-t border-border/50">
-          <div className="container mx-auto px-4 md:px-6 max-w-4xl">
-            <div className="text-center mb-12 space-y-3">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-pink-500/10 to-indigo-500/10 border border-indigo-500/20 text-indigo-500 text-xs font-semibold dark:text-indigo-400">
-                <HelpCircle className="w-3.5 h-3.5 text-indigo-500" />
-                Common Questions
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-                Frequently Asked Questions
-              </h2>
-              <p className="text-base text-muted-foreground max-w-xl mx-auto">
-                Got questions about Online-ExamHub? We have answers.
-              </p>
-            </div>
-
-            <Accordion type="single" collapsible className="w-full space-y-4">
-              <AccordionItem
-                value="item-1"
-                className="border border-border/60 bg-card hover:border-indigo-500/30 transition-colors duration-300 px-4 rounded-xl shadow-sm"
-              >
-                <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-4">
-                  How does AI exam generation work?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-4 pt-1">
-                  You can upload study guides, textbooks, or reference notes. Our embedded AI
-                  analyzes the content structure and creates standard multiple-choice, true/false,
-                  or descriptive questions aligned with specified cognitive levels.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem
-                value="item-2"
-                className="border border-border/60 bg-card hover:border-pink-500/30 transition-colors duration-300 px-4 rounded-xl shadow-sm"
-              >
-                <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-4">
-                  Can I lock down the exam rooms to prevent cheating?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-4 pt-1">
-                  Yes, instructors can lock rooms, randomise question options, enforce strict time
-                  windows, and monitor participants' access status live.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem
-                value="item-3"
-                className="border border-border/60 bg-card hover:border-cyan-500/30 transition-colors duration-300 px-4 rounded-xl shadow-sm"
-              >
-                <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-4">
-                  Is grading completely automated?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-4 pt-1">
-                  Yes! All objective questions (Multiple Choice, True/False, Single Choice) are
-                  graded instantly upon submission. Students receive detailed scoring feedback
-                  immediately.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem
-                value="item-4"
-                className="border border-border/60 bg-card hover:border-amber-500/30 transition-colors duration-300 px-4 rounded-xl shadow-sm"
-              >
-                <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-4">
-                  Is there any limit to the number of students per room?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-4 pt-1">
-                  Instructors can configure custom capacities for each room and exam session
-                  depending on their plan tier. By default, rooms support high concurrent user
-                  capacity.
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </div>
-        </section>
+        {/* Interactive Dynamic Daily Role-Tailored FAQ Section */}
+        <FaqSection />
 
         {/* Glow CTA Section */}
         <section className="py-20 md:py-28 relative">

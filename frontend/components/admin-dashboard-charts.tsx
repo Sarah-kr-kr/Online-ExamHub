@@ -72,7 +72,8 @@ const EXAM_RESULT_COLORS = {
 }
 
 export function AdminDashboardCharts({ stats, exams = [] }: AdminChartsProps) {
-  const [activeExamFilter, setActiveExamFilter] = useState<'all' | 'with_attempts'>('all')
+  type ExamFilterType = 'all' | 'with_attempts' | 'no_attempts' | 'top_passed' | 'needs_review'
+  const [activeExamFilter, setActiveExamFilter] = useState<ExamFilterType>('all')
 
   // ───────────────────────────────────────────────────────────────────────────
   // PART 1: USERS BREAKDOWN CALCULATIONS (Student, Teacher, Admin)
@@ -111,14 +112,54 @@ export function AdminDashboardCharts({ stats, exams = [] }: AdminChartsProps) {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // PART 2: EXAMS FAIL & SUCCESS BREAKDOWN CALCULATIONS
+  // PART 2: EXAMS FAIL & SUCCESS BREAKDOWN CALCULATIONS (DYNAMIC FILTER)
   // ───────────────────────────────────────────────────────────────────────────
-  // Calculate total passed and failed submissions across all exams or stats
-  const calculatedPassedFromExams = exams.reduce((acc, curr) => acc + (curr.passed_count || 0), 0)
-  const calculatedFailedFromExams = exams.reduce((acc, curr) => acc + (curr.failed_count || 0), 0)
+  const examsWithAttemptsCount = exams.filter((e) => (e.participant_count || 0) > 0).length
+  const examsNoAttemptsCount = exams.filter((e) => (e.participant_count || 0) === 0).length
 
-  const totalPassed = stats.passedCount ?? calculatedPassedFromExams
-  const totalFailed = stats.failedCount ?? calculatedFailedFromExams
+  // Filter & sort displayedExams based on activeExamFilter
+  const displayedExams = React.useMemo(() => {
+    let list = [...exams]
+    if (activeExamFilter === 'with_attempts') {
+      list = list.filter((e) => (e.participant_count || 0) > 0)
+    } else if (activeExamFilter === 'no_attempts') {
+      list = list.filter((e) => (e.participant_count || 0) === 0)
+    } else if (activeExamFilter === 'top_passed') {
+      list = list
+        .filter((e) => (e.participant_count || 0) > 0)
+        .sort((a, b) => (b.passed_count || 0) - (a.passed_count || 0))
+    } else if (activeExamFilter === 'needs_review') {
+      list = list
+        .filter((e) => (e.participant_count || 0) > 0)
+        .sort((a, b) => (b.failed_count || 0) - (a.failed_count || 0))
+    }
+    return list
+  }, [exams, activeExamFilter])
+
+  // Calculate total passed and failed submissions for displayedExams
+  const calculatedPassedFromExams = displayedExams.reduce(
+    (acc, curr) => acc + (curr.passed_count || 0),
+    0
+  )
+  const calculatedFailedFromExams = displayedExams.reduce(
+    (acc, curr) => acc + (curr.failed_count || 0),
+    0
+  )
+  const calculatedAttemptsFromExams = displayedExams.reduce(
+    (acc, curr) => acc + (curr.participant_count || 0),
+    0
+  )
+
+  const totalPassed =
+    activeExamFilter === 'all' && stats.passedCount !== undefined
+      ? stats.passedCount
+      : calculatedPassedFromExams
+
+  const totalFailed =
+    activeExamFilter === 'all' && stats.failedCount !== undefined
+      ? stats.failedCount
+      : calculatedFailedFromExams
+
   const totalEvaluated = totalPassed + totalFailed
 
   const passRatePct =
@@ -128,6 +169,18 @@ export function AdminDashboardCharts({ stats, exams = [] }: AdminChartsProps) {
         ? stats.overallAvg
         : 0
   const failRatePct = totalEvaluated > 0 ? 100 - passRatePct : 0
+
+  const displayAttemptsCount =
+    activeExamFilter === 'all'
+      ? stats.submissionCount || totalEvaluated
+      : calculatedAttemptsFromExams
+
+  const displayAvgScore =
+    displayedExams.length > 0
+      ? Math.round(
+          displayedExams.reduce((acc, e) => acc + (e.avg_score || 0), 0) / displayedExams.length
+        )
+      : stats.overallAvg
 
   const examResultPieData = [
     { name: 'Passed', value: totalPassed, color: EXAM_RESULT_COLORS.Passed },
@@ -140,10 +193,6 @@ export function AdminDashboardCharts({ stats, exams = [] }: AdminChartsProps) {
   }
 
   // Per-Exam Passed vs Failed Bar Chart Data
-  const displayedExams = exams.filter((e) =>
-    activeExamFilter === 'with_attempts' ? e.participant_count > 0 : true
-  )
-
   const examComparisonBarData = displayedExams.slice(0, 10).map((e) => ({
     name: e.title.length > 14 ? e.title.slice(0, 14) + '…' : e.title,
     fullTitle: e.title,
@@ -175,13 +224,13 @@ export function AdminDashboardCharts({ stats, exams = [] }: AdminChartsProps) {
               Comprehensive success vs failure rates, pass percentages, and exam outcome comparisons
             </p>
           </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-1.5 flex-wrap self-start sm:self-auto">
             <button
               onClick={() => setActiveExamFilter('all')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                 activeExamFilter === 'all'
                   ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-muted text-muted-foreground hover:text-foreground'
+                  : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'
               }`}
             >
               All Exams ({exams.length})
@@ -191,10 +240,40 @@ export function AdminDashboardCharts({ stats, exams = [] }: AdminChartsProps) {
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                 activeExamFilter === 'with_attempts'
                   ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-muted text-muted-foreground hover:text-foreground'
+                  : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'
               }`}
             >
-              With Attempts ({exams.filter((e) => e.participant_count > 0).length})
+              With Attempts ({examsWithAttemptsCount})
+            </button>
+            <button
+              onClick={() => setActiveExamFilter('no_attempts')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                activeExamFilter === 'no_attempts'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'
+              }`}
+            >
+              Without Attempts ({examsNoAttemptsCount})
+            </button>
+            <button
+              onClick={() => setActiveExamFilter('top_passed')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                activeExamFilter === 'top_passed'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'
+              }`}
+            >
+              Top Passed
+            </button>
+            <button
+              onClick={() => setActiveExamFilter('needs_review')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                activeExamFilter === 'needs_review'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'
+              }`}
+            >
+              Needs Review
             </button>
           </div>
         </div>

@@ -23,7 +23,12 @@ router.patch('/profile', verifyToken, userController.updateProfile)
 
 router.get('/dashboard', verifyToken, userController.getDashboardStats)
 
-router.get('/settings', verifyToken, userController.getSystemSettings)
+router.get(
+  '/settings',
+  verifyToken,
+  allowedTo(userRoles.ADMIN),
+  userController.getSystemSettings
+)
 router.patch(
   '/settings',
   verifyToken,
